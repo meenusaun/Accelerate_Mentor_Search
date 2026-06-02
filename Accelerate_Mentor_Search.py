@@ -315,7 +315,7 @@ def detect_intent(user_input, last_recommendations):
 
 def call_ai(prompt, max_tokens=2048):
     response = anthropic_client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-5",
         max_tokens=max_tokens,
         temperature=0,
         system="""You are an AI expert-matching assistant for Resources Network,
