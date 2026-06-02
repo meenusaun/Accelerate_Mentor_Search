@@ -462,12 +462,21 @@ else:
             return "background-color: #EAF2FF; color: #154360; font-weight: 600;"
         return ""
 
-    styled = (
-        filtered[display_cols]
-        .style
-        .applymap(style_mentor_type, subset=["Mentor Type"])
-        .applymap(style_exp_type, subset=["Experience Type"])
-    )
+    try:
+        # pandas >= 2.1 uses .map(); older versions use .applymap()
+        styled = (
+            filtered[display_cols]
+            .style
+            .map(style_mentor_type, subset=["Mentor Type"])
+            .map(style_exp_type, subset=["Experience Type"])
+        )
+    except AttributeError:
+        styled = (
+            filtered[display_cols]
+            .style
+            .applymap(style_mentor_type, subset=["Mentor Type"])
+            .applymap(style_exp_type, subset=["Experience Type"])
+        )
 
     st.dataframe(
         styled,
