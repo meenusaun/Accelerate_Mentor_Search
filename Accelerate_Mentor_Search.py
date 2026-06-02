@@ -115,9 +115,9 @@ def load_data():
     df = pd.read_excel("mentors.xlsx", engine="openpyxl", dtype=str, na_filter=False)
 
     required_cols = [
-        "Name", "LinkedIn", "Expertise", "Secondary Expertise",
-        "Industry", "Secondary Industry", "Description",
-        "Expertise Tags", "Industry Tags", "Document Path",
+        "Name", "LinkedIn", "Primary Expertise", "Secondary Expertise",
+        "Primary Industry", "Secondary Industry", "Description",
+        "Document Path",
         "Program", "Years of Experience", "Location",
         "Current Organization", "Current Designation", "Qualification",
         "Industry - Operator Data",
@@ -142,13 +142,12 @@ def load_data():
         return df[name] if name in df.columns else ""
 
     df["combined"] = (
-        "Expertise: " + safe("Expertise") + ". " +
+        "Primary Expertise: " + safe("Primary Expertise") + ". " +
         "Secondary Expertise: " + safe("Secondary Expertise") + ". " +
-        "Industry: " + safe("Industry") + ". " +
+        "Primary Industry: " + safe("Primary Industry") + ". " +
         "Secondary Industry: " + safe("Secondary Industry") + ". " +
         "Active Industry Sectors: " + safe("Active Industries") + ". " +
         "Description: " + safe("Description") + ". " +
-        "Tags: " + safe("Expertise Tags") + " " + safe("Industry Tags") + ". " +
         "Qualification: " + safe("Qualification") + ". " +
         "Current Organization: " + safe("Current Organization") + ". " +
         "Current Designation: " + safe("Current Designation") + ". " +
@@ -486,9 +485,9 @@ def run_search(query, source_df, source_vectors):
 
         expert_info += f"""
 Name: {row['Name']}
-Expertise: {r('Expertise')}
+Primary Expertise: {r('Primary Expertise')}
 Secondary Expertise: {r('Secondary Expertise')}
-Industry: {r('Industry')}
+Primary Industry: {r('Primary Industry')}
 Active Industry Sectors: {active_sectors or 'Not specified'}
 Current Designation: {r('Current Designation')}
 Current Organization: {r('Current Organization')}
@@ -588,7 +587,7 @@ Return only the JSON array. No extra text.
                 "Hands On Score": "1 | Limited operator experience confirmed",
                 "Expertise Score": "1 | Some relevant expertise may apply",
                 "Credibility Score": "1 | Profile available for review",
-                "Core Expertise": row.get("Expertise", "Not specified"),
+                "Core Expertise": row.get("Primary Expertise", "Not specified"),
                 "Match Reason": "No strong match found. Closest available by semantic similarity. Verify manually before outreach.",
                 "Relevant Experience": row.get("Description", "")[:300],
                 "Current Designation": row.get("Current Designation", ""),
@@ -615,8 +614,8 @@ _GENERALIST_DOMAINS = [
 
 def build_profile_text(row):
     parts = [
-        row.get("Expertise", ""), row.get("Secondary Expertise", ""),
-        row.get("Description", ""), row.get("Expertise Tags", ""),
+        row.get("Primary Expertise", ""), row.get("Secondary Expertise", ""),
+        row.get("Description", ""),
         row.get("What is the one business problem you are most qualified to advise on from direct experience?", ""),
         row.get("Other Experience(s), if any", ""),
         row.get("Doc Text", ""), row.get("Current Designation", ""),
@@ -640,8 +639,8 @@ def classify_experience_type_rule(profile_text):
 
 def classify_sme_generalist_rule(row):
     combined = (
-        row.get("Expertise", "") + " " + row.get("Secondary Expertise", "") + " " +
-        row.get("Description", "") + " " + row.get("Expertise Tags", "")
+        row.get("Primary Expertise", "") + " " + row.get("Secondary Expertise", "") + " " +
+        row.get("Description", "")
     ).lower()
     matched = {d for d in _GENERALIST_DOMAINS if d in combined}
     return "Generalist" if len(matched) >= 4 else "SME"
@@ -713,10 +712,10 @@ def build_directory(df_hash: str) -> pd.DataFrame:
         linkedin_raw = str(row.get("LinkedIn", "")).strip()
         linkedin_display = linkedin_raw if linkedin_raw and linkedin_raw.lower() not in ("nan", "none", "") else ""
 
-        exp_parts = [str(row.get("Expertise", "")).strip(), str(row.get("Secondary Expertise", "")).strip()]
+        exp_parts = [str(row.get("Primary Expertise", "")).strip(), str(row.get("Secondary Expertise", "")).strip()]
         expertise_str = " · ".join(p for p in exp_parts if p and p.lower() not in ("nan", ""))
 
-        ind_parts = [str(row.get("Industry", "")).strip(), str(row.get("Secondary Industry", "")).strip()]
+        ind_parts = [str(row.get("Primary Industry", "")).strip(), str(row.get("Secondary Industry", "")).strip()]
         industry_str = " · ".join(p for p in ind_parts if p and p.lower() not in ("nan", ""))
 
         yoe_raw = str(row.get("Years of Experience", "")).strip()
@@ -731,8 +730,8 @@ def build_directory(df_hash: str) -> pd.DataFrame:
         rows.append({
             "Name":                name,
             "LinkedIn":            linkedin_display,
-            "Expertise":           expertise_str or "—",
-            "Industry":            industry_str or "—",
+            "Primary Expertise":   expertise_str or "—",
+            "Primary Industry":    industry_str or "—",
             "Years of Experience": yoe,
             "Program":             prog,
             "Experience Type":     ", ".join(cls["experience_types"]),
@@ -980,7 +979,7 @@ with tab_browse:
     if filt.empty:
         st.info("No mentors match the selected filters. Try removing some filters.")
     else:
-        display_cols = ["Name", "LinkedIn", "Expertise", "Industry",
+        display_cols = ["Name", "LinkedIn", "Primary Expertise", "Primary Industry",
                         "Years of Experience", "Program", "Experience Type", "Mentor Type"]
 
         def style_mentor_type(val):
